@@ -6,4 +6,5 @@
 <a target="_blank" href="https://blog.csdn.net/muguli2008/article/details/106734113" >https://blog.csdn.net/muguli2008/article/details/106734113</a>
 
 # 实例效果：
-![image](https://raw.githubusercontent.com/MuGuiLin/wxEditor/master/explanation/2019-08-28_172238.jpg)
+![image](https://raw.githubusercontent.com/MuGuiLin/VoiceDictation/master/img/test.png)
+![image](https://raw.githubusercontent.com/MuGuiLin/VoiceDictation/master/img/test.gif)

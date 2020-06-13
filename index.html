@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum=1.0, user-scalable=no shrink-to-fit=no" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>迅飞语音听写（流式版）WebAPI</title>
+    <link rel="stylesheet" href="./css/base.css" />
+</head>
+
+<body>
+    <h1 class="h1">迅飞语音听写（流式版）WebAPI</h1>
+    <hr>
+    <section class="voice-box">
+        <input type="search" name="voice" id="voice-txt" />
+        <button id="start-btn">开始识别</button>
+    </section>
+
+    <section class="fixed-box" id="fixed-box">
+        <div class="fixed-main">
+            <button class="fixed-close" id="close-btn"></button>
+            <div id="fixed-txt">Hello! 请说出你想说话。。。！</div>
+            <div class="fixed-icon">
+                <img src="./img/voice.png" alt="" />
+            </div>
+        </div>
+    </section>
+
+    <script src="./js/crypto-js.js"></script>
+    <script src="./js/voice.js"></script>
+    <script>
+        window.onload = function () {
+
+            const voiceTxt = document.querySelector('#voice-txt');
+            const startBtn = document.querySelector('#start-btn');
+            const fixedBox = document.querySelector('#fixed-box');
+            const fixedTxt = document.querySelector('#fixed-txt');
+            const closeBtn = document.querySelector('#close-btn');
+            let fiveTell = null;
+
+            // 实例化迅飞语音听写（流式版）WebAPI
+            const iatRecorder = new IatRecorder({
+
+                // 服务接口认证信息 注：apiKey 和 apiSecret 的长度都差不多，请要填错哦！
+                appId: '',
+                apiKey: '',
+                apiSecret: '',
+                // 注：要获取以上3个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation
+
+                onWillStatusChange: function (oldStatus, newStatus) {
+                    //可以在这里进行页面中一些交互逻辑处理：注：倒计时（语音听写只有60s）,录音的动画，按钮交互等！
+                    fixedBox.style.display = 'block';
+                },
+                onTextChange: function (text) {
+                    //监听识别结果的变化
+                    voiceTxt.value = text;
+                    fixedTxt.innerText = text;
+
+                    // 3秒钟内没有说话，就自动关闭
+                    if (text) {
+                        clearTimeout(fiveTell);
+                        fiveTell = setTimeout(function () {
+                            iatRecorder.stop();
+                            fixedBox.style.display = 'none';
+                        }, 3000);
+                    };
+                }
+            });
+
+            // 开始识别
+            startBtn['onclick'] = function () {
+                iatRecorder.start();
+            };
+
+            // 关闭识别
+            closeBtn['onclick'] = function () {
+                iatRecorder.stop();
+                fixedBox.style.display = 'none';
+            };
+        };
+    </script>
+</body>
+
+</html>

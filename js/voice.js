@@ -26,22 +26,25 @@ class IatRecorder {
         this.init();
     };
 
-    // 设置WebSocket请求地址
+    // WebSocket请求地址鉴权
     getWebSocketUrl() {
         return new Promise((resolve, reject) => {
             // 请求地址根据语种不同变化
-            var url = 'wss://iat-api.xfyun.cn/v2/iat'
-            var host = 'iat-api.xfyun.cn'
-            var date = new Date().toGMTString()
-            var algorithm = 'hmac-sha256'
-            var headers = 'host date request-line'
-            var signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`
-            var signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret)
-            var signature = CryptoJS.enc.Base64.stringify(signatureSha)
-            var authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`
-            var authorization = btoa(authorizationOrigin)
-            url = `${url}?authorization=${authorization}&date=${date}&host=${host}`
-            resolve(url);
+            try {
+                var url = 'wss://iat-api.xfyun.cn/v2/iat'
+                var host = 'iat-api.xfyun.cn'
+                var date = new Date().toGMTString()
+                var algorithm = 'hmac-sha256'
+                var headers = 'host date request-line'
+                var signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`
+                var signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret)
+                var signature = CryptoJS.enc.Base64.stringify(signatureSha)
+                var authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`
+                var authorization = btoa(authorizationOrigin);
+                resolve(`${url}?authorization=${authorization}&date=${date}&host=${host}`);
+            } catch (error) {
+                reject(error);
+            };
         });
     };
 

@@ -1,14 +1,12 @@
-; (function (window, Voice) {
+; (function (window, voice) {
     "use strict";
-
     if (typeof define === 'function' && define.amd) {
-        define(Voice());
+        define(voice);
     } else if (typeof exports === 'object') {
-        module.exports = Voice();
+        module.exports = voice();
     } else {
-        window.Voice = Voice();
+        window.Voice = voice();
     };
-
 }(typeof window !== "undefined" ? window : this, () => {
     "use strict";
     return class IatRecorder {
@@ -17,16 +15,13 @@
             this.appId = opts.appId || '';
             this.apiKey = opts.apiKey || '';
             this.apiSecret = opts.apiSecret || '';
-
             // 识别监听方法
             this.onTextChange = opts.onTextChange || Function();
             this.onWillStatusChange = opts.onWillStatusChange || Function();
-
             // 方言/语种
             this.status = 'null'
             this.language = opts.language || 'zh_cn'
             this.accent = opts.accent || 'mandarin';
-
             // 流媒体
             this.streamRef = [];
             // 记录音频数据
@@ -36,35 +31,43 @@
             // wpgs下的听写结果需要中间状态辅助记录
             this.resultTextTemp = '';
             // 音频数据多线程
-
             this.init();
         };
-
         // WebSocket请求地址鉴权
         getWebSocketUrl() {
             return new Promise((resolve, reject) => {
                 // 请求地址根据语种不同变化
                 try {
-                    var url = 'wss://iat-api.xfyun.cn/v2/iat'
-                    var host = 'iat-api.xfyun.cn'
-                    var date = new Date().toGMTString()
-                    var algorithm = 'hmac-sha256'
-                    var headers = 'host date request-line'
-                    var signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`
-                    var signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret)
-                    var signature = CryptoJS.enc.Base64.stringify(signatureSha)
-                    var authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`
-                    var authorization = btoa(authorizationOrigin);
+                    const CryptoJS = require('crypto-js');
+                    let url = 'wss://iat-api.xfyun.cn/v2/iat',
+                        host = 'iat-api.xfyun.cn',
+                        date = new Date().toGMTString(),
+                        algorithm = 'hmac-sha256',
+                        headers = 'host date request-line',
+                        signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`,
+                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret),
+                        signature = CryptoJS.enc.Base64.stringify(signatureSha),
+                        authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
+                        authorization = btoa(authorizationOrigin);
                     resolve(`${url}?authorization=${authorization}&date=${date}&host=${host}`);
                 } catch (error) {
-                    reject(error);
+                    let url = 'wss://iat-api.xfyun.cn/v2/iat',
+                        host = 'iat-api.xfyun.cn',
+                        date = new Date().toGMTString(),
+                        algorithm = 'hmac-sha256',
+                        headers = 'host date request-line',
+                        signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`,
+                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret),
+                        signature = CryptoJS.enc.Base64.stringify(signatureSha),
+                        authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
+                        authorization = btoa(authorizationOrigin);
+                    resolve(`${url}?authorization=${authorization}&date=${date}&host=${host}`);
                 };
             });
         };
-
         // 操作初始化
         init() {
-            var self = this;
+            const self = this;
             try {
                 if (!self.appId || !self.apiKey || !self.apiSecret) {
                     alert('请正确配置【迅飞语音听写（流式版）WebAPI】服务接口认证信息！');
@@ -78,39 +81,33 @@
                 alert('对不起：请在服务器环境下运行！');
                 console.error('请在服务器如：WAMP、XAMPP、Phpstudy、http-server、WebServer等环境中运行！', error);
             };
-            console.log("%c ❤️使用说明：https://blog.csdn.net/muguli2008/article/details/106734113", "font-size:32px; color:blue; font-weight: bold;");
+            console.log("%c ❤️使用说明：http://www.muguilin.com/blog/info/609bafc50d572b3fd79b058f", "font-size:32px; color:blue; font-weight: bold;");
         };
-
         // 修改录音听写状态
         setStatus(status) {
             this.onWillStatusChange && this.status !== status && this.onWillStatusChange(this.status, status);
             this.status = status;
         };
-
         // 设置识别结果内容
         setResultText({ resultText, resultTextTemp } = {}) {
             this.onTextChange && this.onTextChange(resultTextTemp || resultText || '');
             resultText !== undefined && (this.resultText = resultText);
             resultTextTemp !== undefined && (this.resultTextTemp = resultTextTemp);
         };
-
         // 修改听写参数
         setParams({ language, accent } = {}) {
             language && (this.language = language)
             accent && (this.accent = accent)
         };
-
         // 对处理后的音频数据进行base64编码，
         toBase64(buffer) {
-            var binary = '';
-            var bytes = new Uint8Array(buffer);
-            var len = bytes.byteLength;
-            for (var i = 0; i < len; i++) {
+            let binary = '';
+            let bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
                 binary += String.fromCharCode(bytes[i]);
             }
             return window.btoa(binary);
         };
-
         // 连接WebSocket
         connectWebSocket() {
             return this.getWebSocketUrl().then(url => {
@@ -143,7 +140,6 @@
                 };
             })
         };
-
         // 初始化浏览器录音
         recorderInit() {
             // 创建音频环境
@@ -188,9 +184,7 @@
                     this.webSocket.close();
                 }
             };
-
             navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-
             // 获取浏览器录音权限
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({
@@ -220,15 +214,12 @@
                 return false;
             };
         };
-
         // 向webSocket发送数据(音频二进制数据经过Base64处理)
         webSocketSend() {
-            if (this.webSocket.readyState !== 1) {
-                return false;
-            }
+            if (this.webSocket.readyState !== 1) return false;
             // 音频数据
-            let audioData = this.audioData.splice(0, 1280);
-            var params = {
+            const audioData = this.audioData.splice(0, 1280);
+            const params = {
                 common: {
                     app_id: this.appId,
                 },
@@ -248,7 +239,6 @@
             };
             // 发送数据
             this.webSocket.send(JSON.stringify(params));
-
             this.handlerInterval = setInterval(() => {
                 // websocket未连接
                 if (this.webSocket.readyState !== 1) {
@@ -286,7 +276,6 @@
                 );
             }, 40);
         };
-
         // 识别结束 webSocket返回数据
         webSocketRes(resultData) {
             let jsonData = JSON.parse(resultData);
@@ -323,7 +312,6 @@
                 this.webSocket.close();
             }
         };
-
         // 启动录音
         recorderStart() {
             if (!this.audioContext) {
@@ -333,7 +321,6 @@
                 this.connectWebSocket();
             }
         };
-
         // 停止录音
         recorderStop() {
             if (!(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgen))) {
@@ -347,13 +334,11 @@
                 console.error('暂停失败!');
             }
         };
-
         // 开始
         start() {
             this.recorderStart();
             this.setResultText({ resultText: '', resultTextTemp: '' });
         };
-
         // 停止
         stop() {
             this.recorderStop();

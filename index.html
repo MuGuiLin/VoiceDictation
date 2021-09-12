@@ -38,7 +38,7 @@
             const fixedBox = document.querySelector('#fixed-box');
             const fixedTxt = document.querySelector('#fixed-txt');
             const closeBtn = document.querySelector('#close-btn');
-            let fiveTell = null;
+            let times = null;
 
             // 实例化迅飞语音听写（流式版）WebAPI
             const voice = new Voice({
@@ -60,9 +60,9 @@
 
                     // 3秒钟内没有说话，就自动关闭
                     if (text) {
-                        clearTimeout(fiveTell);
-                        fiveTell = setTimeout(() => {
-                            this.stop();
+                        clearTimeout(times);
+                        times = setTimeout(() => {
+                            this.stop(); // voice.stop();
                             fixedBox.style.display = 'none';
                         }, 3000);
                     };

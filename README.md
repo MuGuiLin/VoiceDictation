@@ -35,7 +35,7 @@
 
 ### 实例效果：
 
-- #### [https://muguilin.github.io/VoiceDictation](https://muguilin.github.io/VoiceDictation)
+- #### [https://demo.muguilin.com/VoiceDictation/](https://demo.muguilin.com/VoiceDictation/)
 
 
 

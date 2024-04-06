@@ -5,23 +5,30 @@
     } else if (typeof exports === 'object') {
         module.exports = voice();
     } else {
-        window.Voice = voice();
+        window.XfVoiceDictation = voice();
     };
 }(typeof window !== "undefined" ? window : this, () => {
     "use strict";
     return class IatRecorder {
         constructor(opts = {}) {
             // 服务接口认证信息(语音听写（流式版）WebAPI)
-            this.appId = opts.appId || '';
-            this.apiKey = opts.apiKey || '';
-            this.apiSecret = opts.apiSecret || '';
+            this.APPID = opts.APPID || '';
+            this.APISecret = opts.APISecret || '';
+            this.APIKey = opts.APIKey || '';
+
+            // webSocket请求地址
+            this.url = opts.url || "wss://iat-api.xfyun.cn/v2/iat";
+            this.host = opts.host || "iat-api.xfyun.cn";
+
             // 识别监听方法
             this.onTextChange = opts.onTextChange || Function();
             this.onWillStatusChange = opts.onWillStatusChange || Function();
+           
             // 方言/语种
             this.status = 'null'
             this.language = opts.language || 'zh_cn'
             this.accent = opts.accent || 'mandarin';
+            
             // 流媒体
             this.streamRef = [];
             // 记录音频数据
@@ -33,43 +40,42 @@
             // 音频数据多线程
             this.init();
         };
-        // WebSocket请求地址鉴权
+
+        // 获取webSocket请求地址鉴权
         getWebSocketUrl() {
             return new Promise((resolve, reject) => {
+                const { url, host, APISecret, APIKey } = this;
                 // 请求地址根据语种不同变化
                 try {
                     const CryptoJS = require('crypto-js');
-                    let url = 'wss://iat-api.xfyun.cn/v2/iat',
-                        host = 'iat-api.xfyun.cn',
-                        date = new Date().toGMTString(),
+                    let date = new Date().toGMTString(),
                         algorithm = 'hmac-sha256',
                         headers = 'host date request-line',
                         signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`,
-                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret),
+                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, APISecret),
                         signature = CryptoJS.enc.Base64.stringify(signatureSha),
-                        authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
+                        authorizationOrigin = `api_key="${APIKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
                         authorization = btoa(authorizationOrigin);
                     resolve(`${url}?authorization=${authorization}&date=${date}&host=${host}`);
                 } catch (error) {
-                    let url = 'wss://iat-api.xfyun.cn/v2/iat',
-                        host = 'iat-api.xfyun.cn',
-                        date = new Date().toGMTString(),
+                    let date = new Date().toGMTString(),
                         algorithm = 'hmac-sha256',
                         headers = 'host date request-line',
                         signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`,
-                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, this.apiSecret),
+                        signatureSha = CryptoJS.HmacSHA256(signatureOrigin, APISecret),
                         signature = CryptoJS.enc.Base64.stringify(signatureSha),
-                        authorizationOrigin = `api_key="${this.apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
+                        authorizationOrigin = `api_key="${APIKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`,
                         authorization = btoa(authorizationOrigin);
                     resolve(`${url}?authorization=${authorization}&date=${date}&host=${host}`);
                 };
             });
         };
+
         // 操作初始化
         init() {
             const self = this;
             try {
-                if (!self.appId || !self.apiKey || !self.apiSecret) {
+                if (!self.APPID || !self.APIKey || !self.APISecret) {
                     alert('请正确配置【迅飞语音听写（流式版）WebAPI】服务接口认证信息！');
                 } else {
                     self.webWorker = new Worker('./js/transcode.worker.js');
@@ -221,7 +227,7 @@
             const audioData = this.audioData.splice(0, 1280);
             const params = {
                 common: {
-                    app_id: this.appId,
+                    app_id: this.APPID,
                 },
                 business: {
                     language: this.language, //小语种可在控制台--语音听写（流式）--方言/语种处添加试用

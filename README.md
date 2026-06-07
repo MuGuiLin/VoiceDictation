@@ -20,10 +20,7 @@
 
 ## 🔍 在线演示
 
-| 地址 | 说明 |
-|------|------|
-| [demo.muguilin.com/VoiceDictation](http://demo.muguilin.com/VoiceDictation/) | 主站演示 |
-| [muguilin.github.io/VoiceDictation](https://muguilin.github.io/VoiceDictation/) | GitHub Pages 演示 |
+GitHub Pages 演示：[muguilin.github.io/VoiceDictation](https://muguilin.github.io/VoiceDictation/)
 
 ![效果预览](https://camo.githubusercontent.com/8943c97eb6bfa4b905475206f1f1f6584cf3470a8dfc0cccd7c596cfc8f8366f/68747470733a2f2f696d672d626c6f672e6373646e696d672e636e2f32303230303631333138303635333134352e676966)
 

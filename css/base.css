@@ -96,10 +96,9 @@ body::before {
 }
 
 .header .divider {
-    width: 80px;
     height: 3px;
     margin: 20px auto 0;
-    background: linear-gradient(90deg, var(--color-accent), #a78bfa);
+    background: linear-gradient(90deg, var(--color-accent), #ffffff);
     border-radius: 3px;
     border: none;
 }
@@ -108,7 +107,7 @@ body::before {
 .main-card {
     position: relative;
     z-index: 1;
-    width: min(90%, 640px);
+    width: min(90%, 800px);
     margin: 36px auto;
     padding: 36px 32px;
     background: rgba(255, 255, 255, .95);
@@ -128,11 +127,11 @@ body::before {
 .voice-box input {
     flex: 1;
     height: 56px;
-    padding: 0 20px;
+    padding: 5px 20px;
     font-size: 16px;
     color: var(--color-text);
     background: #f8fafc;
-    border: 2px solid var(--color-border);
+    border: 2px solid var(--color-primary);
     border-right: none;
     border-radius: var(--radius-md) 0 0 var(--radius-md);
     outline: none;

@@ -3,11 +3,13 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum=1.0, user-scalable=no shrink-to-fit=no" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum=1.0, user-scalable=no shrink-to-fit=no" />
+    <meta name="author" content="MuGuiLin, 沐枫, https://github.com/MuGuiLin" />
+    <meta name="keywords" content="MuGuiLin, 沐枫, 前端, Web前端, Web全栈, 人工智能, 前端工程师, AI应用开发、网站开发, Ai Agent搭建, H5开发, Ai智能体开发、 APP开发, 小程序, Python, LangChain" />
     <title>迅飞语音听写（流式版）WebAPI</title>
     <link rel="stylesheet" href="./css/base.css" />
-    <script async src="https://hm.baidu.com/hm.js?85fad12bb9a6dab448f4eff0a19299a5"></script>
+    <!-- <script src="https://hm.baidu.com/hm.js?85fad12bb9a6dab448f4eff0a19299a5"></script> -->
 </head>
 
 <body>
@@ -43,15 +45,29 @@
             // 实例化迅飞语音听写（流式版）WebAPI
             const xfVoice = new XfVoiceDictation({
 
-                // 服务接口认证信息 注：APISecret 和 APIKey 的长度都差不多，请要填错哦，！
-                APPID: '5ec244d5',
-                APISecret: '37912e3e3f205e2a6201ec290452470a', 
-                APIKey: '78b6c006f1f3df5e24d315e3dff09212',
-                // 注：要获取以上3个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation 【注：这是我的迅飞语音听写（流式版）每天服务量500（也就是调500次），如果你需求里大请购买服务量：https://www.xfyun.cn/services/voicedictation?target=price】
+                // 从后端 API 获取已鉴权的 WebSocket URL（推荐方式）
+                // 凭证（APPID / API_SECRET / API_KEY）保留在服务端，不会暴露到前端，和官网的API类似 https://www.xfyun.cn/herapi/product/iat_sign 
+                wsUrlProvider: function () {
+                    return fetch('http://localhost:666/api/xf-ws-url').then(function (res) {
+                        if (!res.ok) {
+                            throw new Error('获取 WebSocket URL 失败: ' + res.status);
+                        }
+                        return res.json(); // → { url: "wss://...", APPID: "..." }
+                    });
+                },
+
+                // ===== 也可以选择前端直接配置（不推荐生产环境使用，注：当传入了wsUrlProvider参数时，以下三项可以留空或不传】） =====
+                // 如果使用 wsUrlProvider，以下三项可以留空或不传【🔔服务接口认证信息 注：API_SECRET 和 API_KEY 值的长度都差不多，请要填错哦！】
+                // APPID: '5ec244d5',
+                // API_SECRET: '37912e3e3f205e2a6201ec290452470a', 
+                // API_KEY: '78b6c006f1f3df5e24d315e3dff09212', 
+                // 📢注：要获取以上3个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation 【注：这是我的迅飞语音听写（流式版）每天服务量500（也就是调500次），如果你需求里大请购买服务量：https://www.xfyun.cn/services/voicedictation?target=price】
 
                 // webSocket请求地址 非必传参数，默认为：wss://iat-api.xfyun.cn/v2/iat
                 // url: '',
-
+                
+                // 语种 非必传参数，默认为：zh_cn
+                // language: 'zh_cn',
 
                 onWillStatusChange: function (oldStatus, newStatus) {
                     //可以在这里进行页面中一些交互逻辑处理：注：倒计时（语音听写只有60s）,录音的动画，按钮交互等！

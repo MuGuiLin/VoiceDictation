@@ -13,8 +13,13 @@
         constructor(opts = {}) {
             // 服务接口认证信息(语音听写（流式版）WebAPI)
             this.APPID = opts.APPID || '';
-            this.APISecret = opts.APISecret || '';
-            this.APIKey = opts.APIKey || '';
+            this.API_SECRET = opts.API_SECRET || '';
+            this.API_KEY = opts.API_KEY || '';
+
+            // 自定义 WebSocket URL 提供器（用于从后端 API 获取已鉴权的 URL）
+            // 签名: () => Promise<{ url: string, appId?: string } | string>
+            // 如果指定了此函数，则 APPID / API_SECRET / API_KEY 可留空
+            this.wsUrlProvider = opts.wsUrlProvider || null;
 
             // webSocket请求地址
             this.url = opts.url || "wss://iat-api.xfyun.cn/v2/iat";
@@ -72,22 +77,52 @@
 
         // 获取webSocket请求地址鉴权
         getWebSocketUrl() {
+            // 如果配置了自定义 URL 提供器，从后端 API 获取已鉴权的 URL
+            if (this.wsUrlProvider) {
+                return this.wsUrlProvider().then(result => {
+                    if (result && typeof result === 'object') {
+                        // 后端返回 { url, APPID } → 同步 APPID 供 webSocketSend 使用
+                        if (result.APPID) {
+                            this.APPID = result.APPID;
+                        }
+                        return result.url;
+                    }
+                    // 如果直接返回字符串 URL
+                    return result;
+                });
+            }
+
+            // 兜底：本地签名（需配置 APPID / API_SECRET / API_KEY）
             return new Promise((resolve, reject) => {
-                const { url, host, APISecret, APIKey } = this;
+                const { url, host, API_SECRET, API_KEY } = this;
                 try {
                     const CryptoJS = require('crypto-js');
-                    const result = this.generateAuthParams(url, host, APISecret, APIKey);
+                    const result = this.generateAuthParams(url, host, API_SECRET, API_KEY);
                     resolve(result);
                 } catch (error) {
                     // 浏览器环境，使用全局CryptoJS
-                    const result = this.generateAuthParams(url, host, APISecret, APIKey);
+                    const result = this.generateAuthParams(url, host, API_SECRET, API_KEY);
+                    console.log('[XfVoiceDictation] 鉴权结果：', result.toString());
+                    console.log('[XfVoiceDictation] 鉴权结果：', this.generateAuthParams2(url, host, API_SECRET, API_KEY).toString());
+
                     resolve(result);
                 }
             });
         }
 
         // 生成鉴权参数
-        generateAuthParams(url, host, APISecret, APIKey) {
+        generateAuthParams(url, host, API_SECRET, API_KEY) {
+            const date = new Date().toUTCString();
+            const algorithm = 'hmac-sha256';
+            const headers = 'host date request-line';
+            const signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`;
+            const signatureSha = CryptoJS.HmacSHA256(signatureOrigin, API_SECRET);
+            const signature = CryptoJS.enc.Base64.stringify(signatureSha);
+            const authorizationOrigin = `api_key="${API_KEY}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`;
+            const authorization = btoa(authorizationOrigin);
+            return `${url}?authorization=${authorization}&date=${encodeURIComponent(date)}&host=${host}`;
+        }
+        generateAuthParams2(url, host, APISecret, APIKey) {
             const date = new Date().toUTCString();
             const algorithm = 'hmac-sha256';
             const headers = 'host date request-line';
@@ -103,9 +138,9 @@
         init() {
             const self = this;
             try {
-                if (!self.APPID || !self.APIKey || !self.APISecret) {
-                    console.warn('[XfVoiceDictation] 请正确配置【讯飞语音听写（流式版）WebAPI】服务接口认证信息！');
-                    self.onError && self.onError({ code: -1, message: '请正确配置APPID、APIKey、APISecret' });
+                if (!self.APPID || !self.API_KEY || !self.API_SECRET) {
+                    console.warn('⚠️[XfVoiceDictation] 请正确配置【讯飞语音听写（流式版）WebAPI】服务接口认证信息！');
+                    self.onError && self.onError({ code: -1, message: '⚠️请正确配置APPID、API_SECRET、API_KEY' });
                     return;
                 } else {
                     self.webWorker = new Worker('./js/transcode.worker.js');
@@ -114,8 +149,8 @@
                     };
                 }
             } catch (error) {
-                console.error('[XfVoiceDictation] 请在服务器环境下运行！', error);
-                self.onError && self.onError({ code: -2, message: '请在服务器环境下运行' });
+                console.error('⚠️[XfVoiceDictation] 请在Web服务器环境下运行！', error);
+                self.onError && self.onError({ code: -2, message: '⚠️请在Web服务器环境下运行' });
             };
         }
 
@@ -237,7 +272,7 @@
             // 获取浏览器录音权限失败时回调
             let getMediaFail = (e) => {
                 this.log('Get media fail:', e);
-                const error = { code: -6, message: '录音权限获取失败' };
+                const error = { code: -6, message: '录音权限获取失败！' };
                 this.onError && this.onError(error);
                 this.audioContext && this.audioContext.close();
                 this.audioContext = null;

@@ -1,38 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum=1.0, user-scalable=no shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
     <meta name="author" content="MuGuiLin, 沐枫, https://github.com/MuGuiLin" />
-    <meta name="keywords" content="MuGuiLin, 沐枫, 前端, Web前端, Web全栈, 人工智能, 前端工程师, AI应用开发、网站开发, Ai Agent搭建, H5开发, Ai智能体开发、 APP开发, 小程序, Python, LangChain" />
+    <meta name="keywords" content="MuGuiLin, 沐枫, 前端, Web前端, Web全栈, 人工智能, 前端工程师, AI应用开发, 网站开发, Ai Agent搭建, H5开发, Ai智能体开发, APP开发, 小程序, Python, LangChain" />
     <title>迅飞语音听写（流式版）WebAPI</title>
     <link rel="stylesheet" href="./css/base.css" />
-    <!-- <script src="https://hm.baidu.com/hm.js?85fad12bb9a6dab448f4eff0a19299a5"></script> -->
+    <script src="https://hm.baidu.com/hm.js?85fad12bb9a6dab448f4eff0a19299a5"></script>
 </head>
 
 <body>
-    <h1 class="h1">迅飞语音听写（流式版）WebAPI</h1>
-    <hr>
-    <section class="voice-box">
-        <input type="search" name="voice" id="voice-txt" />
-        <button id="start-btn">开始识别</button>
-    </section>
 
+    <!-- 头部 -->
+    <header class="header">
+        <h1>🎤 迅飞 语音听写 <span>WebAPI</span></h1>
+        <p class="subtitle">流式版 · 实时语音转文字！</p>
+        <hr class="divider" />
+    </header>
+
+    <!-- 主卡片 -->
+    <main class="main-card">
+        <section class="voice-box">
+            <input type="search" name="voice" id="voice-txt" placeholder="Hello! 请说出你想说的话…" />
+            <button id="start-btn">开始识别</button>
+        </section>
+    </main>
+
+    <!-- 录音浮层 -->
     <section class="fixed-box" id="fixed-box">
+        <button class="fixed-close" id="close-btn" aria-label="关闭识别"></button>
         <div class="fixed-main">
-            <button class="fixed-close" id="close-btn"></button>
-            <div id="fixed-txt">Hello! 请说出你想说话。。。！</div>
-            <div class="fixed-icon">
-                <img src="./img/voice.png" alt="" />
+            <!-- 语音动画波纹 -->
+            <div class="voice-icon" id="voice-icon">
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="icon-core">
+                    <img src="./img/voice.png" alt="录音中" />
+                </div>
             </div>
+            <!-- 声波动画 -->
+            <div class="wave-bars" id="wave-bars">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <!-- 识别文字 -->
+            <div id="fixed-txt">Hello! 请说出你想说的话…</div>
+            <!-- 状态提示 -->
+            <span class="listening-hint" id="listening-hint">正在聆听</span>
         </div>
     </section>
 
     <script src="./js/crypto-js.min.js"></script>
     <script src="./js/xf-voice-dictation.js"></script>
-    
+
     <script>
         window.onload = function () {
             const voiceTxt = document.querySelector('#voice-txt');
@@ -40,52 +69,86 @@
             const fixedBox = document.querySelector('#fixed-box');
             const fixedTxt = document.querySelector('#fixed-txt');
             const closeBtn = document.querySelector('#close-btn');
+            const voiceIcon = document.querySelector('#voice-icon');
+            const waveBars = document.querySelector('#wave-bars');
+            const listeningHint = document.querySelector('#listening-hint');
             let times = null;
 
             // 实例化迅飞语音听写（流式版）WebAPI
             const xfVoice = new XfVoiceDictation({
 
-                // 从后端 API 获取已鉴权的 WebSocket URL（推荐方式）
-                // 凭证（APPID / API_SECRET / API_KEY）保留在服务端，不会暴露到前端，和官网的API类似 https://www.xfyun.cn/herapi/product/iat_sign 
-                wsUrlProvider: function () {
-                    return fetch('http://localhost:666/api/xf-ws-url').then(function (res) {
+                // ✅ 从后端 API 获取已鉴权的 WebSocket URL（推荐方式）
+                // 凭证（APPID / API_SECRET / API_KEY）保留在服务端，不会暴露到前端
+                // 和官网的 API 类似 https://www.xfyun.cn/herapi/product/iat_sign
+                /*wsUrlProvider: function () {
+                    return fetch('http://localhost:3000/api/xf-ws-url').then(function (res) {
                         if (!res.ok) {
                             throw new Error('获取 WebSocket URL 失败: ' + res.status);
                         }
                         return res.json(); // → { url: "wss://...", APPID: "..." }
                     });
-                },
+                },*/
 
-                // ===== 也可以选择前端直接配置（不推荐生产环境使用，注：当传入了wsUrlProvider参数时，以下三项可以留空或不传】） =====
-                // 如果使用 wsUrlProvider，以下三项可以留空或不传【🔔服务接口认证信息 注：API_SECRET 和 API_KEY 值的长度都差不多，请要填错哦！】
-                // APPID: '5ec244d5',
-                // API_SECRET: '37912e3e3f205e2a6201ec290452470a', 
-                // API_KEY: '78b6c006f1f3df5e24d315e3dff09212', 
-                // 📢注：要获取以上3个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation 【注：这是我的迅飞语音听写（流式版）每天服务量500（也就是调500次），如果你需求里大请购买服务量：https://www.xfyun.cn/services/voicedictation?target=price】
+                // ❌ 也可以选择前端直接配置（不推荐生产环境使用）
+                // 注：当传入了 wsUrlProvider 参数时，以下三项可以留空或不传
+                // 🔔 服务接口认证信息  注：API_SECRET 和 API_KEY 值的长度都差不多，请别填错哦！
+                APPID: '5ec244d5',
+                API_SECRET: '37912e3e3f205e2a6201ec290452470a',
+                API_KEY: '78b6c006f1f3df5e24d315e3dff09212',
+                // 📢 要获取以上 3 个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation
+                // 注：这是我的迅飞语音听写（流式版）每天服务量 500（也就是调 500 次），如果你需求量更大请购买服务量
 
-                // webSocket请求地址 非必传参数，默认为：wss://iat-api.xfyun.cn/v2/iat
+                // webSocket 请求地址  非必传参数，默认：wss://iat-api.xfyun.cn/v2/iat
                 // url: '',
-                
-                // 语种 非必传参数，默认为：zh_cn
+                // 语种  非必传参数，默认：zh_cn
                 // language: 'zh_cn',
+                // 是否开启调试模式，默认 false
+                // debug: true,
 
                 onWillStatusChange: function (oldStatus, newStatus) {
-                    //可以在这里进行页面中一些交互逻辑处理：注：倒计时（语音听写只有60s）,录音的动画，按钮交互等！
+                    // 录音状态变化：可以在这里处理倒计时、录音动画、按钮交互等
                     fixedBox.style.display = 'block';
-                },
-                onTextChange: function (text) {
-                    //监听识别结果的变化
-                    voiceTxt.value = text;
-                    fixedTxt.innerText = text;
 
-                    // 3秒钟内没有说话，就自动关闭
+                    if (newStatus === 'ing') {
+                        startBtn.textContent = '录音中…';
+                        startBtn.classList.add('recording');
+                        listeningHint.textContent = '正在聆听';
+                        voiceIcon.style.display = 'flex';
+                        waveBars.style.display = 'flex';
+                    } else if (newStatus === 'end') {
+                        startBtn.textContent = '开始识别';
+                        startBtn.classList.remove('recording');
+                        listeningHint.textContent = '识别完成';
+                        waveBars.style.display = 'none';
+                    }
+                },
+
+                onTextChange: function (text) {
+                    // 监听识别结果的变化
+                    voiceTxt.value = text;
+                    fixedTxt.innerText = text || 'Hello! 请说出你想说的话…';
+
+                    // 有文字时隐藏动画，显示结果
+                    if (text) {
+                        voiceIcon.style.display = 'none';
+                        waveBars.style.display = 'none';
+                        listeningHint.textContent = '';
+                    } else {
+                        voiceIcon.style.display = 'flex';
+                        waveBars.style.display = 'flex';
+                        listeningHint.textContent = '正在聆听';
+                    }
+
+                    // 3 秒钟内没有说话，自动关闭
                     if (text) {
                         clearTimeout(times);
                         times = setTimeout(() => {
-                            this.stop(); // xfVoice.stop();
+                            xfVoice.stop();
                             fixedBox.style.display = 'none';
+                            startBtn.textContent = '开始识别';
+                            startBtn.classList.remove('recording');
                         }, 3000);
-                    };
+                    }
                 }
             });
 
@@ -98,6 +161,8 @@
             closeBtn['onclick'] = function () {
                 xfVoice.stop();
                 fixedBox.style.display = 'none';
+                startBtn.textContent = '开始识别';
+                startBtn.classList.remove('recording');
             };
         };
     </script>

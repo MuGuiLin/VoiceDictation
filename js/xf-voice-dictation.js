@@ -11,15 +11,15 @@
     "use strict";
     return class IatRecorder {
         constructor(opts = {}) {
-            // 服务接口认证信息(语音听写（流式版）WebAPI)
-            this.APPID = opts.APPID || '';
-            this.API_SECRET = opts.API_SECRET || '';
-            this.API_KEY = opts.API_KEY || '';
-
             // 自定义 WebSocket URL 提供器（用于从后端 API 获取已鉴权的 URL）
             // 签名: () => Promise<{ url: string, appId?: string } | string>
             // 如果指定了此函数，则 APPID / API_SECRET / API_KEY 可留空
             this.wsUrlProvider = opts.wsUrlProvider || null;
+
+            // 服务接口认证信息(语音听写（流式版）WebAPI)
+            this.APPID = opts.APPID || '';
+            this.API_SECRET = opts.API_SECRET || '';
+            this.API_KEY = opts.API_KEY || '';
 
             // webSocket请求地址
             this.url = opts.url || "wss://iat-api.xfyun.cn/v2/iat";
@@ -90,8 +90,8 @@
                     // 如果直接返回字符串 URL
                     return result;
                 });
-            }
 
+            }
             // 兜底：本地签名（需配置 APPID / API_SECRET / API_KEY）
             return new Promise((resolve, reject) => {
                 const { url, host, API_SECRET, API_KEY } = this;
@@ -102,9 +102,6 @@
                 } catch (error) {
                     // 浏览器环境，使用全局CryptoJS
                     const result = this.generateAuthParams(url, host, API_SECRET, API_KEY);
-                    console.log('[XfVoiceDictation] 鉴权结果：', result.toString());
-                    console.log('[XfVoiceDictation] 鉴权结果：', this.generateAuthParams2(url, host, API_SECRET, API_KEY).toString());
-
                     resolve(result);
                 }
             });
@@ -112,35 +109,22 @@
 
         // 生成鉴权参数
         generateAuthParams(url, host, API_SECRET, API_KEY) {
-            const date = new Date().toUTCString();
-            const algorithm = 'hmac-sha256';
-            const headers = 'host date request-line';
+            const date = new Date().toGMTString();
             const signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`;
             const signatureSha = CryptoJS.HmacSHA256(signatureOrigin, API_SECRET);
             const signature = CryptoJS.enc.Base64.stringify(signatureSha);
-            const authorizationOrigin = `api_key="${API_KEY}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`;
-            const authorization = btoa(authorizationOrigin);
+            const authorization = btoa(`api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`);
             return `${url}?authorization=${authorization}&date=${encodeURIComponent(date)}&host=${host}`;
         }
-        generateAuthParams2(url, host, APISecret, APIKey) {
-            const date = new Date().toUTCString();
-            const algorithm = 'hmac-sha256';
-            const headers = 'host date request-line';
-            const signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`;
-            const signatureSha = CryptoJS.HmacSHA256(signatureOrigin, APISecret);
-            const signature = CryptoJS.enc.Base64.stringify(signatureSha);
-            const authorizationOrigin = `api_key="${APIKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`;
-            const authorization = btoa(authorizationOrigin);
-            return `${url}?authorization=${authorization}&date=${encodeURIComponent(date)}&host=${host}`;
-        }
+
 
         // 操作初始化
         init() {
             const self = this;
             try {
-                if (!self.APPID || !self.API_KEY || !self.API_SECRET) {
+                if (!self.wsUrlProvider && (!self.APPID || !self.API_KEY || !self.API_SECRET)) {
                     console.warn('⚠️[XfVoiceDictation] 请正确配置【讯飞语音听写（流式版）WebAPI】服务接口认证信息！');
-                    self.onError && self.onError({ code: -1, message: '⚠️请正确配置APPID、API_SECRET、API_KEY' });
+                    self.onError && self.onError({ code: -1, message: '⚠️请正确配置wsUrlProvider 或 APPID、API_SECRET、API_KEY' });
                     return;
                 } else {
                     self.webWorker = new Worker('./js/transcode.worker.js');
@@ -337,10 +321,11 @@
                 common: isFirstFrame ? { app_id: this.APPID } : undefined,
                 business: isFirstFrame ? {
                     language: this.language,
-                    domain: 'iat',
                     accent: this.accent,
-                    vad_eos: 5000,
-                    dwa: 'wpgs'
+                    domain: 'iat',
+                    dwa: 'wpgs',
+                    ptt: 1,
+                    pcm: 1
                 } : undefined,
                 data: {
                     status: isFirstFrame ? 0 : (this.audioData.length === 0 ? 2 : 1),

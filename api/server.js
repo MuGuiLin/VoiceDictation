@@ -8,8 +8,8 @@
  *   先在 .env 文件中配置好 APPID / API_SECRET / API_KEY，然后：
  *   node server.js
  *
- * 前端访问: http://localhost:666
- * API 端点: GET /api/xf-ws-url → { url: "wss://...", appId: "..." }
+ * 前端访问: http://localhost:3000
+ * API 端点: GET /api/xf-ws-url → { url: "wss://...", APPId: "..." }
  */
 
 // 加载 .env 文件中的环境变量
@@ -69,7 +69,7 @@ app.get('/api/xf-ws-url', (_req, res) => {
         const url =
             `${WS_URL}?authorization=${authorization}&date=${encodeURIComponent(date)}&host=${HOST}`;
 
-        res.json({ url, appId: APPID });
+        res.json({ url, APPID });
     } catch (error) {
         console.error('[xf-ws-url] 签名生成失败:', error);
         res.status(500).json({ error: 'WebSocket URL 签名生成失败' });
@@ -80,10 +80,21 @@ app.get('/api/xf-ws-url', (_req, res) => {
 // 启动
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 666;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`✅ 讯飞语音听写服务已启动:  http://localhost:${PORT}`);
     console.log(`🔑 API 鉴权端点:           http://localhost:${PORT}/api/xf-ws-url`);
+
     if (!APPID || !API_SECRET || !API_KEY) {
         console.warn('⚠️  警告：未检测到 APPID / API_SECRET / API_KEY 环境变量，API 将返回 500。');
+    }
+});
+
+// 端口被占用时的友好提示
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ 端口 ${PORT} 已被占用，请先关闭占用该端口的进程，或修改 .env 中的 PORT。`);
+        process.exit(1);
+    } else {
+        throw err;
     }
 });
